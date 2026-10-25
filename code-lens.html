@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Lens — Projects</title>
+    <script>
+      // Apply the saved theme before painting the page. Storage may be unavailable in private browsing.
+      try {
+        if (localStorage.getItem("code-lens-theme") === "dark") {
+          document.documentElement.dataset.theme = "dark";
+        }
+      } catch (_) {}
+    </script>
+    <style>
+      /* All styling is embedded: no fonts, scripts, or external assets are required. */
+      :root {
+        --bg: #eef0f5;
+        --white: #fff;
+        --ink: #252d38;
+        --muted: #727987;
+        --line: #dadde3;
+        --blue: #416bc1;
+        --blue-bg: #e8edfc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        color: inherit;
+      }
+      svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+      }
+      .icon-defs {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+      .topbar {
+        height: 45px;
+        background: white;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 11px 0 18px;
+      }
+      .brand-group,
+      .brand,
+      .top-actions {
+        display: flex;
+        align-items: center;
+      }
+      .brand {
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .brand svg {
+        color: var(--blue);
+        width: 17px;
+        height: 17px;
+      }
+      .breadcrumb {
+        margin-left: 14px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .top-actions {
+        gap: 20px;
+      }
+      .shortcut {
+        font: 10px monospace;
+        color: #596477;
+      }
+      .theme {
+        border: 0;
+        background: none;
+        padding: 3px;
+        display: flex;
+        color: #7b8290;
+      }
+      .theme svg {
+        width: 14px;
+        height: 14px;
+      }
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 27px;
+        height: 27px;
+        border-radius: 50%;
+        background: var(--blue-bg);
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--blue);
+      }
+      .sidebar {
+        position: absolute;
+        top: 45px;
+        bottom: 0;
+        left: 0;
+        width: 63px;
+        min-height: 711px;
+        background: white;
+        border-right: 1px solid var(--line);
+        padding: 8px 4px;
+      }
+      .nav-item {
+        width: 53px;
+        height: 50px;
+        border: 0;
+        background: transparent;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        color: #68717f;
+        font-size: 9px;
+        border-radius: 8px;
+        text-decoration: none;
+      }
+      .nav-item.active {
+        height: 47px;
+        background: var(--blue-bg);
+        color: var(--blue);
+      }
+      .nav-item svg {
+        width: 15px;
+        height: 15px;
+      }
+      .divider {
+        height: 1px;
+        background: #e2e5eb;
+        margin: 8px 10px 0;
+      }
+      .nav-item:hover {
+        background: #f1f4fa;
+      }
+      .nav-item.active:hover {
+        background: var(--blue-bg);
+      }
+      main {
+        margin-left: 63px;
+        padding: 30px;
+        max-width: 985px;
+        box-sizing: content-box;
+      }
+      .content {
+        max-width: 925px;
+      }
+      h1 {
+        font-size: 24px;
+        line-height: 29px;
+        margin: 0 0 7px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 11.5px;
+        line-height: 17px;
+        margin: 0 0 18px;
+        letter-spacing: 0.1px;
+      }
+      .search {
+        height: 38px;
+        max-width: 568px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 0 12px;
+        margin-bottom: 18px;
+      }
+      .search svg {
+        width: 13px;
+        height: 13px;
+        color: #727c88;
+      }
+      .search input {
+        outline: none;
+        border: 0;
+        background: none;
+        width: 100%;
+        font-size: 12px;
+        color: var(--ink);
+      }
+      .search:focus-within {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px #416bc118;
+      }
+      .search input::placeholder {
+        color: #808080;
+      }
+      .projects {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .project {
+        height: 230px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        padding: 14px 13px;
+        overflow: hidden;
+      }
+      .preview {
+        height: 108px;
+        border: 1px solid #e0e3e9;
+        border-radius: 7px;
+        background-color: #f7f8fa;
+        background-image: radial-gradient(#cdd2dc 0.8px, transparent 0.8px);
+        background-size: 12px 12px;
+        position: relative;
+        margin-bottom: 10px;
+      }
+      .class-box {
+        position: absolute;
+        width: 49px;
+        height: 28px;
+        border: 1px solid #abb3bf;
+        border-radius: 4px;
+        background: #ffffffed;
+      }
+      .class-box:before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        left: 0;
+        right: 0;
+        border-top: 1px solid #d9dce2;
+      }
+      .box-a {
+        left: 18px;
+        top: 7px;
+      }
+      .box-b {
+        left: 103px;
+        top: 7px;
+      }
+      .box-c {
+        left: 189px;
+        top: 7px;
+      }
+      .box-d {
+        left: 103px;
+        top: 55px;
+      }
+      .box-e {
+        left: 189px;
+        top: 59px;
+      }
+      .library .box-b {
+        left: 156px;
+        top: 16px;
+      }
+      .card-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      h2 {
+        font-size: 13px;
+        line-height: 16px;
+        margin: 0;
+        font-weight: 700;
+      }
+      .badge {
+        font:
+          9px/13px "Courier New",
+          monospace;
+        height: 15px;
+        padding: 0 5px;
+        background: #f5f6f8;
+        border: 1px solid #dce0e7;
+        border-radius: 3px;
+        color: #596477;
+      }
+      .badge.blue {
+        background: #e7edfc;
+        border-color: #d2dcf5;
+        color: #315cb2;
+      }
+      .description {
+        font-size: 11px;
+        line-height: 16px;
+        color: var(--muted);
+        margin: 8px 0 9px;
+        min-height: 32px;
+      }
+      .metadata {
+        font-size: 10.5px;
+        color: var(--muted);
+        line-height: 15px;
+      }
+      .revision {
+        font-family: "Courier New", monospace;
+      }
+      .new-project {
+        border: 1px dashed #b8bec8;
+        border-radius: 11px;
+        background: none;
+        min-height: 230px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .plus {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--blue-bg);
+        color: var(--blue);
+        display: grid;
+        place-items: center;
+        margin: 0 0 11px;
+      }
+      .plus svg {
+        width: 22px;
+        height: 22px;
+      }
+      .new-title {
+        font-weight: 700;
+        font-size: 13px;
+        line-height: 17px;
+      }
+      .new-description {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .activity {
+        margin-top: 20px;
+      }
+      .activity h2 {
+        margin-bottom: 10px;
+      }
+      .activity-list {
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        overflow: hidden;
+        background: white;
+      }
+      .activity-row {
+        display: grid;
+        grid-template-columns: 77px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 37.5px;
+        padding: 8px 15px;
+        border-bottom: 1px solid #e0e3e9;
+        font-size: 11px;
+      }
+      .activity-row:last-child {
+        border-bottom: 0;
+      }
+      .activity-row .badge {
+        width: 77px;
+      }
+      .activity-row time {
+        color: var(--muted);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .badge.green {
+        background: #e3f2e9;
+        border-color: #e3f2e9;
+        color: #306d54;
+      }
+      @media (min-width: 1100px) {
+        main {
+          width: 925px;
+        }
+      }
+      @media (max-width: 850px) {
+        .projects {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .new-project {
+          min-height: 180px;
+        }
+        .project {
+          height: 230px;
+        }
+        main {
+          padding: 24px;
+        }
+        .preview {
+          overflow: hidden;
+        }
+      }
+      @media (max-width: 550px) {
+        .top-actions {
+          gap: 12px;
+        }
+        .shortcut {
+          display: none;
+        }
+        main {
+          padding: 22px 16px;
+        }
+        .projects {
+          grid-template-columns: 1fr;
+        }
+        .activity-row {
+          grid-template-columns: 77px 1fr;
+          gap: 6px 10px;
+        }
+        .activity-row time {
+          grid-column: 2;
+        }
+        .subtitle {
+          max-width: 250px;
+        }
+        .sidebar {
+          min-height: calc(100vh - 45px);
+          position: fixed;
+        }
+        .box-c,
+        .box-e {
+          left: 72%;
+        }
+        .box-b,
+        .box-d {
+          left: 39%;
+        }
+        .library .box-b {
+          left: 65%;
+        }
+      }
+
+      /* Fixed viewport and dialog: deliberately hide all scrollbars. */
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      textarea {
+        font: inherit;
+      }
+      .project-dialog {
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        width: 436px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100dvh - 24px);
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid #d9dde5;
+        border-radius: 12px;
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 10px 25px #00000012;
+      }
+      .project-dialog::backdrop {
+        background: rgba(31, 37, 47, 0.4);
+      }
+      .dialog-header {
+        height: 51px;
+        padding: 0 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #dfe2e8;
+      }
+      .dialog-header h2 {
+        font-size: 14px;
+        line-height: 18px;
+      }
+      .dialog-close {
+        border: 0;
+        background: none;
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 24px;
+        padding: 2px 9px;
+        cursor: pointer;
+      }
+      .dialog-fields {
+        padding: 17px 15px 15px;
+      }
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+      }
+      .form-field > span {
+        font-size: 9.5px;
+        line-height: 12px;
+        font-weight: 700;
+        color: #6c7583;
+      }
+      .form-field input,
+      .form-field select,
+      .form-field textarea {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid #d9dce2;
+        border-radius: 7px;
+        color: #303742;
+        background: #fff;
+        font-size: 11.5px;
+        outline: none;
+        overflow: hidden;
+      }
+      .form-field input,
+      .form-field select {
+        height: 31px;
+        padding: 0 9px;
+      }
+      .form-field textarea {
+        height: 60px;
+        padding: 9px;
+        resize: none;
+        line-height: 16px;
+      }
+      .form-field input::placeholder,
+      .form-field textarea::placeholder {
+        color: #858585;
+        opacity: 1;
+      }
+      .form-field input:focus,
+      .form-field textarea:focus,
+      .form-field select:focus {
+        border-color: #527dcd;
+        box-shadow: 0 0 0 2px #416bc11a;
+      }
+      .description-field {
+        margin-top: 13px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 8px;
+        margin-top: 13px;
+      }
+      .package-input {
+        font-family: "Courier New", monospace;
+      }
+      .form-note {
+        font-size: 10.5px;
+        line-height: 15px;
+        color: #727b88;
+        margin: 12px 0 0;
+      }
+      .dialog-footer {
+        height: 53px;
+        border-top: 1px solid #dfe2e8;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+        padding: 0 15px;
+      }
+      .dialog-footer button {
+        height: 29px;
+        border-radius: 6px;
+        padding: 0 10px;
+        font-size: 10.5px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .cancel-button {
+        border: 1px solid #d9dde5;
+        background: #fff;
+      }
+      .create-button {
+        border: 1px solid #3263ce;
+        background: #3263ce;
+        color: white;
+      }
+      .new-project {
+        cursor: pointer;
+      }
+      @media (max-height: 450px) {
+        .dialog-header {
+          height: 37px;
+        }
+        .dialog-fields {
+          padding: 9px 15px;
+        }
+        .description-field {
+          margin-top: 6px;
+        }
+        .form-field textarea {
+          height: 40px;
+        }
+        .form-grid {
+          margin-top: 7px;
+          gap: 6px 8px;
+        }
+        .form-note {
+          margin-top: 7px;
+        }
+        .dialog-footer {
+          height: 40px;
+        }
+      }
+
+      /* Theme overrides also cover the modal and cards created later. */
+      :root {
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #141923;
+        --white: #1d2430;
+        --ink: #e6ebf3;
+        --muted: #a8b2c2;
+        --line: #364153;
+        --blue: #94b6ff;
+        --blue-bg: #283b60;
+      }
+      .theme {
+        cursor: pointer;
+        border-radius: 5px;
+      }
+      .theme:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 4px;
+      }
+      [data-theme="dark"] .topbar,
+      [data-theme="dark"] .sidebar,
+      [data-theme="dark"] .search,
+      [data-theme="dark"] .project,
+      [data-theme="dark"] .activity-list,
+      [data-theme="dark"] .project-dialog {
+        background: var(--white);
+        border-color: var(--line);
+      }
+      [data-theme="dark"] .shortcut,
+      [data-theme="dark"] .theme,
+      [data-theme="dark"] .nav-item,
+      [data-theme="dark"] .search svg,
+      [data-theme="dark"] .form-field > span,
+      [data-theme="dark"] .form-note {
+        color: var(--muted);
+      }
+      [data-theme="dark"] .nav-item.active {
+        color: var(--blue);
+      }
+      [data-theme="dark"] .nav-item:hover {
+        background: #293446;
+      }
+      [data-theme="dark"] .nav-item.active:hover {
+        background: var(--blue-bg);
+      }
+      [data-theme="dark"] .divider {
+        background: var(--line);
+      }
+      [data-theme="dark"] .preview {
+        background-color: #171e29;
+        background-image: radial-gradient(#3b475b 0.8px, transparent 0.8px);
+        border-color: var(--line);
+      }
+      [data-theme="dark"] .class-box {
+        background: #273244;
+        border-color: #62728b;
+      }
+      [data-theme="dark"] .class-box:before,
+      [data-theme="dark"] .activity-row,
+      [data-theme="dark"] .dialog-header,
+      [data-theme="dark"] .dialog-footer {
+        border-color: var(--line);
+      }
+      [data-theme="dark"] .badge {
+        background: #2a3342;
+        border-color: #414e63;
+        color: #c2ccdb;
+      }
+      [data-theme="dark"] .badge.blue {
+        background: #273b61;
+        border-color: #3c5581;
+        color: #a7c4ff;
+      }
+      [data-theme="dark"] .badge.green {
+        background: #233f35;
+        border-color: #345748;
+        color: #9cdbb9;
+      }
+      [data-theme="dark"] .new-project {
+        border-color: #53627a;
+      }
+      [data-theme="dark"] .form-field input,
+      [data-theme="dark"] .form-field select,
+      [data-theme="dark"] .form-field textarea,
+      [data-theme="dark"] .cancel-button {
+        background: #171e29;
+        color: var(--ink);
+        border-color: #46536a;
+      }
+      [data-theme="dark"] .search input::placeholder,
+      [data-theme="dark"] .form-field input::placeholder,
+      [data-theme="dark"] .form-field textarea::placeholder {
+        color: #a0acbe;
+      }
+      [data-theme="dark"] .form-field input:focus,
+      [data-theme="dark"] .form-field select:focus,
+      [data-theme="dark"] .form-field textarea:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px #94b6ff26;
+      }
+      [data-theme="dark"] .project-dialog::backdrop {
+        background: rgba(0, 0, 0, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Reusable inline SVG icons keep this page completely self-contained. -->
+    <svg
+      class="icon-defs"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <symbol id="logo" viewBox="0 0 24 24">
+          <circle cx="10" cy="10" r="8" />
+          <path d="m16 16 6 6M8 7 5 10l3 3m4-6 3 3-3 3" />
+        </symbol>
+        <symbol id="folder" viewBox="0 0 24 24">
+          <path d="M3 6h6l2 2h10v12H3Z" />
+        </symbol>
+        <symbol id="design" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+          <path d="M10 6h7v8M6 10v7h8" />
+        </symbol>
+        <symbol id="shield" viewBox="0 0 24 24">
+          <path d="m12 2 9 4-1 9c-1 4-5 6-8 7-3-1-7-3-8-7L3 6Z" />
+        </symbol>
+        <symbol id="check" viewBox="0 0 24 24">
+          <path d="m4 12 5 5L20 6" />
+        </symbol>
+        <symbol id="download" viewBox="0 0 24 24">
+          <path d="M12 3v13m-5-5 5 5 5-5M5 20h14" />
+        </symbol>
+        <symbol id="clock" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 6v6l4 2" />
+        </symbol>
+        <symbol id="code" viewBox="0 0 24 24">
+          <path d="m7 7-4 5 4 5m10-10 4 5-4 5M14 4l-4 16" />
+        </symbol>
+        <symbol id="search" viewBox="0 0 24 24">
+          <circle cx="10" cy="10" r="6" />
+          <path d="m15 15 5 5" />
+        </symbol>
+        <symbol id="sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"
+          />
+        </symbol>
+        <symbol id="moon" viewBox="0 0 24 24">
+          <path d="M20.5 13A9 9 0 0 1 11 3.5 9 9 0 1 0 20.5 13Z" />
+        </symbol>
+        <symbol id="plus" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14" />
+        </symbol>
+      </defs>
+    </svg>
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand">
+          <svg aria-hidden="true"><use href="#logo" /></svg
+          ><span>Code Lens</span>
+        </div>
+        <span class="breadcrumb">Projects</span>
+      </div>
+      <div class="top-actions">
+        <span class="shortcut">Ctrl K</span
+        ><button
+          class="theme"
+          type="button"
+          aria-label="Switch to dark theme"
+          title="Switch to dark theme"
+          aria-pressed="false"
+        >
+          <svg><use href="#sun" /></svg></button
+        ><span class="avatar" aria-label="User RA">RA</span>
+      </div>
+    </header>
+    <nav class="sidebar" aria-label="Main navigation">
+      <button class="nav-item active" type="button" aria-current="page">
+        <svg aria-hidden="true"><use href="#folder" /></svg>Projects
+      </button>
+      <div class="divider"></div>
+      <button class="nav-item" type="button">
+        <svg aria-hidden="true"><use href="#design" /></svg>Design
+      </button>
+      <button class="nav-item" type="button">
+        <svg aria-hidden="true"><use href="#shield" /></svg>Rules
+      </button>
+      <button class="nav-item" type="button">
+        <svg aria-hidden="true"><use href="#check" /></svg>Checks
+      </button>
+      <button class="nav-item" type="button">
+        <svg aria-hidden="true"><use href="#download" /></svg>Export
+      </button>
+      <button class="nav-item" type="button">
+        <svg aria-hidden="true"><use href="#clock" /></svg>Revisions
+      </button>
+      <button class="nav-item" type="button">
+        <svg aria-hidden="true"><use href="#code" /></svg>Code
+      </button>
+    </nav>
+    <main>
+      <div class="content">
+        <h1>Projects</h1>
+        <p class="subtitle">
+          Each project holds one Spring Boot design and its revisions.
+        </p>
+        <label class="search"
+          ><svg aria-hidden="true"><use href="#search" /></svg
+          ><input
+            type="search"
+            placeholder="Search projects by name or description"
+            aria-label="Search projects by name or description"
+        /></label>
+        <section class="projects" aria-label="Projects">
+          <article class="project">
+            <div
+              class="preview"
+              role="img"
+              aria-label="Product Catalogue preview with five class boxes"
+            >
+              <span class="class-box box-a"></span
+              ><span class="class-box box-b"></span
+              ><span class="class-box box-c"></span
+              ><span class="class-box box-d"></span
+              ><span class="class-box box-e"></span>
+            </div>
+            <div class="card-heading">
+              <h2>Product Catalogue</h2>
+              <span class="badge blue">Sample</span>
+            </div>
+            <p class="description">
+              Demo app for every sprint: products, categories and a REST API.
+            </p>
+            <div class="metadata">
+              <span class="revision">r12</span> · 5 classes · Edited 3 h ago
+            </div>
+          </article>
+          <article class="project">
+            <div
+              class="preview library"
+              role="img"
+              aria-label="Library Loans preview with two class boxes"
+            >
+              <span class="class-box box-a"></span
+              ><span class="class-box box-b"></span>
+            </div>
+            <div class="card-heading">
+              <h2>Library Loans</h2>
+              <span class="badge">Draft</span>
+            </div>
+            <p class="description">
+              Members borrow and return books through a REST API.
+            </p>
+            <div class="metadata">
+              <span class="revision">r2</span> · 2 classes · Edited yesterday
+            </div>
+          </article>
+          <button type="button" class="new-project">
+            <span class="plus"
+              ><svg aria-hidden="true"><use href="#plus" /></svg></span
+            ><span class="new-title">New project</span
+            ><span class="new-description">Start from a blank design</span>
+          </button>
+        </section>
+        <section class="activity" aria-labelledby="activity-title">
+          <h2 id="activity-title">Recent activity</h2>
+          <div class="activity-list">
+            <div class="activity-row">
+              <span class="badge">Saved</span
+              ><span>Product Catalogue saved as draft</span><time>3 h ago</time>
+            </div>
+            <div class="activity-row">
+              <span class="badge blue">Export</span
+              ><span>Instructions exported from r12 of Product Catalogue</span
+              ><time>yesterday</time>
+            </div>
+            <div class="activity-row">
+              <span class="badge blue">Revision</span
+              ><span>Library Loans r2 saved: Member added</span
+              ><time>yesterday</time>
+            </div>
+            <div class="activity-row">
+              <span class="badge green">Created</span
+              ><span>Library Loans created</span><time>3 days ago</time>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <dialog class="project-dialog" aria-labelledby="new-project-title">
+      <form id="new-project-form">
+        <header class="dialog-header">
+          <h2 id="new-project-title">New project</h2>
+          <button
+            type="button"
+            class="dialog-close"
+            aria-label="Close new project dialog"
+          >
+            ×
+          </button>
+        </header>
+        <div class="dialog-fields">
+          <label class="form-field"
+            ><span>Project name</span
+            ><input
+              name="projectName"
+              placeholder="Shop API"
+              required
+              maxlength="80"
+              autofocus
+          /></label>
+          <label class="form-field description-field"
+            ><span>Description</span
+            ><textarea
+              name="description"
+              placeholder="Manage products and categories through a REST API."
+              maxlength="300"
+            ></textarea>
+          </label>
+          <div class="form-grid">
+            <label class="form-field"
+              ><span>Base package</span
+              ><input
+                class="package-input"
+                name="basePackage"
+                placeholder="com.example.shop"
+            /></label>
+            <label class="form-field"
+              ><span>Java version</span
+              ><select name="javaVersion">
+                <option>17</option>
+                <option>21</option>
+              </select></label
+            >
+            <label class="form-field"
+              ><span>Spring Boot</span
+              ><select name="springBoot">
+                <option>3.3.x</option>
+                <option>3.2.x</option>
+              </select></label
+            >
+            <label class="form-field"
+              ><span>Build tool</span
+              ><select name="buildTool">
+                <option>Maven</option>
+                <option>Gradle</option>
+              </select></label
+            >
+          </div>
+          <p class="form-note">
+            These settings go into every export, so the agent builds for the
+            right versions.
+          </p>
+        </div>
+        <footer class="dialog-footer">
+          <button type="button" class="cancel-button">Cancel</button
+          ><button type="submit" class="create-button">Create project</button>
+        </footer>
+      </form>
+    </dialog>
+    <script>
+      const themeButton = document.querySelector(".theme");
+      function applyTheme(theme) {
+        const isDark = theme === "dark";
+        document.documentElement.dataset.theme = isDark ? "dark" : "light";
+        themeButton.setAttribute("aria-pressed", String(isDark));
+        const label = isDark ? "Switch to light theme" : "Switch to dark theme";
+        themeButton.setAttribute("aria-label", label);
+        themeButton.title = label;
+        themeButton
+          .querySelector("use")
+          .setAttribute("href", isDark ? "#moon" : "#sun");
+      }
+      applyTheme(document.documentElement.dataset.theme);
+      themeButton.addEventListener("click", () => {
+        const theme =
+          document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(theme);
+        try {
+          localStorage.setItem("code-lens-theme", theme);
+        } catch (_) {}
+      });
+      const dialog = document.querySelector(".project-dialog");
+      const form = document.querySelector("#new-project-form");
+      const trigger = document.querySelector(".new-project");
+      trigger.addEventListener("click", () => {
+        form.reset();
+        dialog.showModal();
+      });
+      document
+        .querySelector(".dialog-close")
+        .addEventListener("click", () => dialog.close());
+      document
+        .querySelector(".cancel-button")
+        .addEventListener("click", () => dialog.close());
+      // Native dialog supplies Escape-to-close, focus trapping, and focus restoration.
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const name = data.get("projectName").trim();
+        if (!name) {
+          form.elements.projectName.setCustomValidity("Enter a project name.");
+          form.elements.projectName.reportValidity();
+          return;
+        }
+        const card = document.createElement("article");
+        card.className = "project";
+        card.innerHTML =
+          '<div class="preview" role="img" aria-label="Empty project preview"></div><div class="card-heading"><h2></h2><span class="badge">Draft</span></div><p class="description"></p><div class="metadata"><span class="revision">r1</span> · 0 classes · Edited just now</div>';
+        card.querySelector("h2").textContent = name;
+        card.querySelector(".description").textContent = data
+          .get("description")
+          .trim();
+        card.dataset.settings = JSON.stringify(Object.fromEntries(data));
+        trigger.before(card);
+        dialog.close();
+      });
+      form.elements.projectName.addEventListener("input", () =>
+        form.elements.projectName.setCustomValidity(""),
+      );
+    </script>
+  </body>
+</html>
